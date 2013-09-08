@@ -264,6 +264,15 @@ test_expect_failure 'exchange two commits with -p' '
 	test G = $(git cat-file commit HEAD | sed -ne \$p)
 '
 
+# This test case rebases starting from the base E onto branch1, preserving
+# the two merge commits "to-be-preserved" and "another-branch":
+#
+#                     branch1
+#                   /
+# A - B - C - D - E - J1 ----- to-be-preserved - K1 - L2 - another-branch - M1
+#               \             /                     \    /
+#                 - unrelated                         L1
+
 test_expect_success 'preserve merges with -p' '
 	git checkout -b to-be-preserved master^ &&
 	test_commit unrelated unrelated-file &&
