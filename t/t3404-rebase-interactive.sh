@@ -292,8 +292,7 @@ test_expect_success 'preserve merges with -p' '
 	git diff-files --quiet &&
 	git diff-index --quiet --cached HEAD -- &&
 	test $(git rev-parse HEAD~6) = $(git rev-parse branch1) &&
-	test $(git rev-parse HEAD~4^2) = \
-		$(git rev-parse refs/heads/to-be-preserved) &&
+	test $(git show -s --format=%s HEAD~4^2) = unrelated &&
 	test $(git rev-parse HEAD^^2^) = $(git rev-parse HEAD^^^) &&
 	test $(git show HEAD~5:file1) = B &&
 	test $(git show HEAD~3:file1) = C &&
