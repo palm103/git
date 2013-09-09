@@ -54,7 +54,7 @@ cat "$1".tmp
 action=pick
 for line in $FAKE_LINES; do
 	case $line in
-	squash|fixup|edit|reword)
+	squash|fixup|edit|reword|label|goto|merge)
 		action="$line";;
 	exec*)
 		echo "$line" | sed 's/_/ /g' >> "$1";;
