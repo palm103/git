@@ -127,6 +127,7 @@ append_todo_help () {
 #  x, exec = run command (the rest of the line) using shell
 #  l, label = mark current commit for later use
 #  g, goto = go to a previously labeled commit
+#  m, merge = perform a merge
 #
 # These lines can be re-ordered; they are executed from top to bottom.
 #
@@ -592,6 +593,39 @@ do_next () {
 		git checkout $commit^0 ||
 		die "Invalid mark: $sha1 ($commit)"
 		mark_action_done
+		;;
+	merge|m)
+		# TODO: skip if we can fast-forward
+		mark_action_done
+		case "$sha1" in
+		-c)
+			sha1=${rest%% *}
+			message="$(git cat-file commit $sha1 |
+				sed '1,/^$/d')" ||
+			die "Invalid merge commit: $sha1"
+			parents=${rest#* }
+			;;
+		*)
+			sha1=
+			parents="$sha1 $rest"
+			message="Merge $parents"
+			;;
+		esac
+		parents=$(for parent in $parents
+			do
+				case "$parent" in
+				rewritten-*|onto)
+					cat "$state_dir"/labels/"$parent" ||
+					die "Invalid parent: $parent"
+					;;
+				*)
+					echo "$parent"
+					;;
+				esac
+			done) ||
+		die "Could not parse parents: $parents"
+		git merge --no-ff -m "$message" $parents ||
+		die_with_patch $sha1 "Could not merge "
 		;;
 	*)
 		warn "Unknown command: $command $sha1 $rest"
