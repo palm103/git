@@ -39,6 +39,14 @@ test -z "$EXPECT_COUNT" ||
 	exit
 mv "$1" "$1".tmp
 sed -n '/# Rebase .* onto/q;p' < "$1".tmp > "$1"
+test -z "$SED_LINES" || {
+	echo "rebase -i script before 'sed $SED_LINES':"
+	cat "$1"
+	sed -i.backup $SED_LINES "$1" ||
+	exit
+	echo "rebase -i script after 'sed $SED_LINES':"
+	cat "$1"
+}
 test -z "$FAKE_LINES" && exit
 mv "$1" "$1".tmp
 echo 'rebase -i script before editing:'
