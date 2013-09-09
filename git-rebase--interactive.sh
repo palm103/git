@@ -618,6 +618,9 @@ do_next () {
 					cat "$state_dir"/labels/"$parent" ||
 					die "Invalid parent: $parent"
 					;;
+				\#)
+					break
+					;;
 				*)
 					echo "$parent"
 					;;
