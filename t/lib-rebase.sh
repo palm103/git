@@ -37,9 +37,10 @@ esac
 test -z "$EXPECT_COUNT" ||
 	test "$EXPECT_COUNT" = $(sed -e '/^#/d' -e '/^$/d' < "$1" | wc -l) ||
 	exit
+mv "$1" "$1".tmp
+sed -n '/# Rebase .* onto/q;p' < "$1".tmp > "$1"
 test -z "$FAKE_LINES" && exit
-grep -v '^#' < "$1" > "$1".tmp
-rm -f "$1"
+mv "$1" "$1".tmp
 echo 'rebase -i script before editing:'
 cat "$1".tmp
 action=pick
