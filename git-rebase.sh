@@ -15,6 +15,7 @@ v,verbose!         display a diffstat of what changed upstream
 q,quiet!           be quiet. implies --no-stat
 onto=!             rebase onto given branch instead of upstream
 p,preserve-merges! try to recreate merges instead of ignoring them
+rebase-merged-branches try to rebase all merged branches
 s,strategy=!       use the given merge strategy
 no-ff!             cherry-pick all commits, even if unchanged
 m,merge!           use merging strategies to rebase
@@ -77,6 +78,7 @@ state_dir=
 # One of {'', continue, skip, abort}, as parsed from command line
 action=
 preserve_merges=
+rebase_merged_branches=
 autosquash=
 keep_empty=
 test "$(git config --bool rebase.autosquash)" = "true" && autosquash=t
@@ -212,6 +214,11 @@ do
 		keep_empty=yes
 		;;
 	-p)
+		preserve_merges=t
+		test -z "$interactive_rebase" && interactive_rebase=implied
+		;;
+	--rebase-merged-branches)
+		rebase_merged_branches=t
 		preserve_merges=t
 		test -z "$interactive_rebase" && interactive_rebase=implied
 		;;

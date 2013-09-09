@@ -810,6 +810,7 @@ test -n "$preserve_merges" && {
 	# This is still the default mode of --preserve-merges.
 
 	test -z "$upstream" ||
+	test -n "$rebase_merged_branches" ||
 	toberebased=" $(bases=$(git merge-base -a "$upstream" "$orig_head")
 		for commit in $toberebased
 		do
