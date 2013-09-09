@@ -301,10 +301,15 @@ test_expect_success 'preserve merges with -p' '
 '
 
 test_expect_success 'edit ancestor with -p' '
-	FAKE_LINES="1 2 edit 3 4" git rebase -i -p HEAD~3 &&
+	(
+		SED_LINES="s/pick.*M1/stop\n&/" &&
+		export SED_LINES &&
+		test_must_fail git rebase -i -p HEAD~3
+	) &&
 	echo 2 > unrelated-file &&
 	test_tick &&
 	git commit -m L2-modified --amend unrelated-file &&
+	GIT_EDITOR="sed -i.backup 1d" git rebase --edit-todo &&
 	git rebase --continue &&
 	git update-index --refresh &&
 	git diff-files --quiet &&
