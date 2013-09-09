@@ -125,6 +125,8 @@ append_todo_help () {
 #  s, squash = use commit, but meld into previous commit
 #  f, fixup = like "squash", but discard this commit's log message
 #  x, exec = run command (the rest of the line) using shell
+#  l, label = mark current commit for later use
+#  g, goto = go to a previously labeled commit
 #
 # These lines can be re-ordered; they are executed from top to bottom.
 #
@@ -576,6 +578,20 @@ do_next () {
 			warn
 			exit 1
 		fi
+		;;
+	label|l)
+		mkdir -p "$state_dir"/labels
+		test -f "$state_dir"/labels/"$sha1" &&
+		die "Mark $sha1 already exists"
+		git rev-parse HEAD > "$state_dir"/labels/"$sha1"
+		mark_action_done
+		;;
+	goto|g)
+		commit="$(cat "$state_dir"/labels/"$sha1")" ||
+		die "No such mark: $sha1"
+		git checkout $commit^0 ||
+		die "Invalid mark: $sha1 ($commit)"
+		mark_action_done
 		;;
 	*)
 		warn "Unknown command: $command $sha1 $rest"
