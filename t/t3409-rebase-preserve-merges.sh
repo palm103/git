@@ -143,9 +143,9 @@ test_expect_success 'rebase -p works when base inside second parent' '
 	cd clone4 &&
 	git fetch &&
 	git rebase -p HEAD^2 &&
-	test 1 = $(git rev-list --all --pretty=oneline | grep "Modify A" | wc -l) &&
-	test 1 = $(git rev-list --all --pretty=oneline | grep "Modify B" | wc -l) &&
-	test 1 = $(git rev-list --all --pretty=oneline | grep "Merge remote-tracking branch " | wc -l)
+	test 1 = $(git rev-list HEAD --pretty=oneline | grep "Add A1" | wc -l) &&
+	test 1 = $(git rev-list HEAD --pretty=oneline | grep "Add B1" | wc -l) &&
+	test 1 = $(git rev-list HEAD --pretty=oneline | grep "Modify A2" | wc -l)
 	)
 '
 
