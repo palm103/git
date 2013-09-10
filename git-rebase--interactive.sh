@@ -72,6 +72,9 @@ rewritten_pending="$state_dir"/rewritten-pending
 GIT_CHERRY_PICK_HELP="$resolvemsg"
 export GIT_CHERRY_PICK_HELP
 
+LF='
+'
+
 warn () {
 	printf '%s\n' "$*" >&2
 }
@@ -485,7 +488,7 @@ do_next () {
 			message="Merge $parents"
 			;;
 		esac
-		parents=$(for parent in $parents
+		parents="`for parent in $parents
 			do
 				case "$parent" in
 				rewritten-*|onto)
@@ -499,7 +502,7 @@ do_next () {
 					echo "$parent"
 					;;
 				esac
-			done) ||
+			done`" ||
 		die "Could not parse parents: $parents"
 		git merge --no-ff -m "$message" $parents ||
 		die_with_patch $sha1 "Could not merge "
@@ -865,7 +868,7 @@ test -n "$preserve_merges" && {
 			case "$parents" in
 			*' '*)
 				# merge
-				merge_parents="$(for parent in ${parents#* }
+				merge_parents="`for parent in ${parents#* }
 					do
 						case "$toberebased" in
 						*" $parent "*)
@@ -873,7 +876,7 @@ test -n "$preserve_merges" && {
 							;;
 						esac
 						echo "$parent "
-					done)"
+					done`"
 				needslabel="$needslabel $(echo "$merge_parents" |
 					tr ' ' '\n' |
 					sed -n 's/^rewritten-//p')"
@@ -901,7 +904,9 @@ test -n "$preserve_merges" && {
 	for commit in $needslabel
 	do
 		newtodo="$(echo "$newtodo" |
-			sed "s/^\(pick\|# skip\|merge -c\) $commit.*/&\\nlabel rewritten-$commit/")"
+			sed -e "s/^pick $commit.*/&\\${LF}label rewritten-$commit/" \
+				-e "s/^# skip $commit.*/&\\${LF}label rewritten-$commit/" \
+				-e "s/^merge -c $commit.*/&\\${LF}label rewritten-$commit/")"
 	done
 	newtodo="$(echo "$newtodo" | uniq)"
 	echo "$newtodo" > "$todo"
