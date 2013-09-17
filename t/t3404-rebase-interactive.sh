@@ -258,33 +258,27 @@ test_expect_failure 'exchange two commits with -p' '
 	test G = $(git cat-file commit HEAD | sed -ne \$p)
 '
 
+# This test case rebases starting from the base E onto branch1, preserving
+# the two merge commits "to-be-preserved" and "another-branch":
+#
+#                     branch1
+#                   /
+# A - B - C - D - E - J1 ----- to-be-preserved - K1 - L2 - another-branch - M1
+#               \             /                     \    /
+#                 - unrelated                         L1
+
 test_expect_success 'preserve merges with -p' '
 	git checkout -b to-be-preserved master^ &&
-	: > unrelated-file &&
-	git add unrelated-file &&
-	test_tick &&
-	git commit -m "unrelated" &&
+	test_commit unrelated unrelated-file &&
 	git checkout -b another-branch master &&
-	echo B > file1 &&
-	test_tick &&
-	git commit -m J file1 &&
-	test_tick &&
-	git merge to-be-preserved &&
-	echo C > file1 &&
-	test_tick &&
-	git commit -m K file1 &&
-	echo D > file1 &&
-	test_tick &&
-	git commit -m L1 file1 &&
+	test_commit J1 file1 B &&
+	test_merge to-be-preserved to-be-preserved &&
+	test_commit K1 file1 C &&
+	test_commit L1 file1 D &&
 	git checkout HEAD^ &&
-	echo 1 > unrelated-file &&
-	test_tick &&
-	git commit -m L2 unrelated-file &&
-	test_tick &&
-	git merge another-branch &&
-	echo E > file1 &&
-	test_tick &&
-	git commit -m M file1 &&
+	test_commit L2 unrelated-file 1 &&
+	test_merge another-branch another-branch &&
+	test_commit M1 file1 E &&
 	git checkout -b to-be-rebased &&
 	test_tick &&
 	git rebase -i -p --onto branch1 master &&
@@ -292,7 +286,7 @@ test_expect_success 'preserve merges with -p' '
 	git diff-files --quiet &&
 	git diff-index --quiet --cached HEAD -- &&
 	test $(git rev-parse HEAD~6) = $(git rev-parse branch1) &&
-	test $(git rev-parse HEAD~4^2) = $(git rev-parse to-be-preserved) &&
+	test $(git show -s --format=%s HEAD~4^2) = unrelated &&
 	test $(git rev-parse HEAD^^2^) = $(git rev-parse HEAD^^^) &&
 	test $(git show HEAD~5:file1) = B &&
 	test $(git show HEAD~3:file1) = C &&
@@ -301,10 +295,15 @@ test_expect_success 'preserve merges with -p' '
 '
 
 test_expect_success 'edit ancestor with -p' '
-	FAKE_LINES="1 2 edit 3 4" git rebase -i -p HEAD~3 &&
+	(
+		SED_LINES="s/pick.*M1/stop\n&/" &&
+		export SED_LINES &&
+		test_must_fail git rebase -i -p HEAD~3
+	) &&
 	echo 2 > unrelated-file &&
 	test_tick &&
 	git commit -m L2-modified --amend unrelated-file &&
+	GIT_EDITOR="sed -i.backup 1d" git rebase --edit-todo &&
 	git rebase --continue &&
 	git update-index --refresh &&
 	git diff-files --quiet &&

@@ -38,9 +38,18 @@ set_fake_editor () {
 	test -z "$EXPECT_COUNT" ||
 		test "$EXPECT_COUNT" = $(sed -e '/^#/d' -e '/^$/d' < "$1" | wc -l) ||
 		exit
+	mv "$1" "$1".tmp
+	sed -n '/# Rebase .* onto/q;p' < "$1".tmp > "$1"
+	test -z "$SED_LINES" || {
+	       echo "rebase -i script before 'sed $SED_LINES':"
+	       cat "$1"
+	       sed -i.backup $SED_LINES "$1" ||
+	       exit
+	       echo "rebase -i script after 'sed $SED_LINES':"
+	       cat "$1"
+	}
 	test -z "$FAKE_LINES" && exit
-	grep -v '^#' < "$1" > "$1".tmp
-	rm -f "$1"
+	mv "$1" "$1".tmp
 	echo 'rebase -i script before editing:'
 	cat "$1".tmp
 	action=pick

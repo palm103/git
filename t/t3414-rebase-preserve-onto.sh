@@ -62,19 +62,19 @@ test_expect_success 'rebase from E1 onto H1' '
 	test "$(git rev-parse HEAD^2)" = "$(git rev-parse D1)"
 '
 
-# And the same if we rebase from a commit in the second-parent branch.
-# A1---B1---E1---F1----G1
-#  \    \          \   /
-#   \    \--C1---D1-\-/
-#    \               \
-#     H1------D3------G4
+# But if we rebase from a commit in the second-parent branch, we must
+# assume that the user wants to rebase the latter part of the
+# second-parent branch, too:
+# A1---H1---E4---F4----G1
+#       \              /
+#        \-------D4---/
 
 test_expect_success 'rebase from C1 onto H1' '
 	git checkout G1 &&
-	git rev-list --first-parent --pretty=oneline C1..G1 &&
+	git log --graph --pretty=oneline --source C1...G1 &&
 	git rebase -p --onto H1 C1 &&
 	test "$(git rev-parse HEAD^2^1)" = "$(git rev-parse H1)" &&
-	test "$(git rev-parse HEAD^1)" = "$(git rev-parse F1)"
+	test "$(git show -s --format=%s HEAD^1)" = "F1"
 '
 
 test_done
