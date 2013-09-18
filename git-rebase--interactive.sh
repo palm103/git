@@ -492,7 +492,7 @@ do_next () {
 		# "exec" command doesn't take a sha1 in the todo-list.
 		# => can't just use $sha1 here.
 		git rev-parse --verify HEAD > "$state_dir"/stopped-sha
-		${SHELL:-@SHELL_PATH@} -c "$rest" # Actual execution
+		${SHELL:-/bin/sh} -c "$rest" # Actual execution
 		status=$?
 		# Run in subshell because require_clean_work_tree can die.
 		dirty=f
@@ -527,7 +527,7 @@ do_next () {
 		mkdir -p "$state_dir"/labels
 		test -f "$state_dir"/labels/"$sha1" &&
 		die "Mark $sha1 already exists"
-		git rev-parse HEAD > "$state_dir"/labels/"$sha1"
+		git rev-parse "${rest:-HEAD}" > "$state_dir"/labels/"$sha1"
 		mark_action_done
 		;;
 	goto|g)
@@ -883,6 +883,12 @@ test -n "$preserve_merges" && {
 	handled=
 	needslabel=
 
+	# each tip is an end point of a commit->first parent chain
+	branch_tips="$(printf '%s\n. . %s' "$list" "$shorthead" |
+		cut -f 3- -d ' ' |
+		tr ' ' '\n' |
+		grep -v '^$')"
+
 	# The original version of --preserve-merges tried to rebase only the
 	# direct descendants of the merge base(s), excluding the branches based
 	# on earlier commits.
@@ -892,22 +898,36 @@ test -n "$preserve_merges" && {
 	test -z "$upstream" ||
 	test -n "$rebase_merged_branches" ||
 	toberebased=" $(bases=$(git merge-base -a "$upstream" "$orig_head")
-		for commit in $toberebased
+echo "bases: $bases" >&2
+		for commit in $branch_tips
 		do
+echo "candidate: $commit" >&2
+			# if the merge has upstream as an ancestor, leave as-is
+			test "$commit" = "$orig_head" ||
+			test "$upstream" != \
+				"$(git merge-base $commit $upstream)" ||
+			: continue
+
 			for base in $bases
 			do
+echo "test whether $base is a direct ancestor of $commit" >&2
 				test "$base" != "$(git merge-base \
 					"$base" $commit)" && continue
+echo "yes..." >&2
 				printf '%s ' $commit
 				break
 			done
 		done)"
 
-	# each tip is an end point of a commit->first parent chain
-	branch_tips="$(printf '%s\n. . %s' "$list" "$shorthead" |
-		cut -f 3- -d ' ' |
-		tr ' ' '\n' |
-		grep -v '^$')"
+echo "tips: $branch_tips" >&2
+echo "toberebased: $toberebased." >&2
+	if test " " = "$toberebased"
+	then
+		newtodo="$(printf '%s\n%s\n' \
+			"# upstream is ancestor; can fast-forward" \
+			"exec git checkout $orig_head")"
+	fi
+
 	for tip in $branch_tips
 	do
 		# if this is not a commit to be rebased, skip
@@ -922,7 +942,7 @@ test -n "$preserve_merges" && {
 		while true
 		do
 			# if already handled, this is our branch point
-			case "$handled " in
+			case "$handled $toberebased " in
 			*" $commit "*)
 				needslabel="$needslabel $commit"
 				part="$(printf '%s # %s\n%s' \
@@ -978,6 +998,7 @@ test -n "$preserve_merges" && {
 		newtodo="$(printf '%s\n\n%s' "$newtodo" "$part")"
 	done
 
+echo "needslabel: $needslabel" >&2
 	for commit in $needslabel
 	do
 		newtodo="$(echo "$newtodo" |
@@ -987,6 +1008,7 @@ test -n "$preserve_merges" && {
 	done
 	newtodo="$(echo "$newtodo" | uniq)"
 	echo "$newtodo" > "$todo"
+printf 'NEWTODO========\n\n%s\n' "$newtodo" >&2
 }
 
 test -s "$todo" || echo noop >> "$todo"

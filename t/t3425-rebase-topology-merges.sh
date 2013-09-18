@@ -111,13 +111,17 @@ test_run_rebase success 'd n o e' -i
 
 test_expect_success "rebase -p is no-op in non-linear history" "
 	reset_rebase &&
+git log --left-right --oneline --boundary --graph --source d...w &&
 	git rebase -p d w &&
+git log --left-right --oneline --boundary --graph --source d...HEAD &&
 	test_cmp_rev w HEAD
 "
 
 test_expect_success "rebase -p is no-op when base inside second parent" "
 	reset_rebase &&
+git log --left-right --oneline --boundary --graph --source e...w &&
 	git rebase -p e w &&
+git log --left-right --oneline --boundary --graph --source e...HEAD &&
 	test_cmp_rev w HEAD
 "
 
@@ -129,7 +133,9 @@ test_expect_failure "rebase -p --root on non-linear history is a no-op" "
 
 test_expect_success "rebase -p re-creates merge from side branch" "
 	reset_rebase &&
+git log --left-right --oneline --boundary --graph --source z...w &&
 	git rebase -p z w &&
+git log --left-right --oneline --boundary --graph --source z...HEAD &&
 	test_cmp_rev z HEAD^ &&
 	test_cmp_rev w^2 HEAD^2
 "
