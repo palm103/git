@@ -363,6 +363,44 @@ do_pick () {
 	fi
 }
 
+rewrite_merge_parents () {
+	sha1="$1"
+	shift
+	if test -z "$sha1" ||
+		test "$(git rev-parse HEAD)" != "$(git rev-parse "$sha1"^)"
+	then
+		canfastforward=
+	else
+		canfastforward=t
+	fi
+	for parent
+	do
+		case "$parent" in
+		rewritten-*|onto)
+			rewritten="$(cat "$state_dir"/labels/"$parent")" ||
+			die "Invalid parent: $parent"
+			case rewritten-"$rewritten" in
+			"$parent"*)
+				;;
+			*)
+				canfastforward=
+				;;
+			esac
+			echo "$rewritten"
+			;;
+		\#)
+			break
+			;;
+		*)
+			echo "$parent"
+			;;
+		esac
+	done &&
+	: exit status 13 denotes that this merge needs not be rewritten
+	test -z "$canfastforward" ||
+	exit 13
+}
+
 do_next () {
 	rm -f "$msg" "$author_script" "$amend" || exit
 	read -r command sha1 rest < "$todo"
@@ -500,7 +538,6 @@ do_next () {
 		mark_action_done
 		;;
 	merge|m)
-		# TODO: skip if we can fast-forward
 		mark_action_done
 		case "$sha1" in
 		-c)
@@ -516,24 +553,17 @@ do_next () {
 			message="Merge $parents"
 			;;
 		esac
-		parents="`for parent in $parents
-			do
-				case "$parent" in
-				rewritten-*|onto)
-					cat "$state_dir"/labels/"$parent" ||
-					die "Invalid parent: $parent"
-					;;
-				\#)
-					break
-					;;
-				*)
-					echo "$parent"
-					;;
-				esac
-			done`" ||
+		parents="$(rewrite_merge_parents "$sha1" $parents)" ||
+		if test $? = 13
+		then
+			# no rewrite needed, we can simply fast-forward...
+			git checkout "$sha1" ||
+			die_with_patch "$sha1" "Could not fast-forward to $sha1"
+		else
+			git merge --no-ff -m "$message" $parents ||
+			die_with_patch $sha1 "Could not merge "
+		fi ||
 		die "Could not parse parents: $parents"
-		git merge --no-ff -m "$message" $parents ||
-		die_with_patch $sha1 "Could not merge "
 		;;
 	*)
 		warn "Unknown command: $command $sha1 $rest"
