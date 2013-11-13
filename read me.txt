@@ -1,0 +1,8 @@
+ Merge branch 'ta/doc-no-small-caps'
+
+Update documentation to change "GIT" which was a poor-man's small
+caps to "Git".  The latter was the intended spelling.
+
+Also change "git" spelled in all-lowercase to "Git" when it refers
+to the system as the whole or the concept it embodies, as opposed to
+the command the end users would type.
